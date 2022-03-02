@@ -15,7 +15,6 @@ library(plotly)
 library(bslib)
 #load the data--------------------
 df <- read_csv('data/icu.csv')
-str(df)
 # Define UI for application that draws a histogram
 ui <- fluidPage(
 
@@ -26,34 +25,77 @@ ui <- fluidPage(
     # Sidebar with a slider input for number of bins 
     sidebarLayout(
         sidebarPanel(
-            sliderInput("bins",
-                        "Number of bins:",
-                        min = 1,
-                        max = 50,
-                        value = 30)
+            selectInput(inputId = "district",
+                        label = "select district", 
+                        selected = "TORONTO", choices = c("TORONTO", "CENTRAL","EAST","WEST","NORTH")),
+            checkboxInput(inputId = "vented",
+                          label = "On ventilators", value = F),
+            dateRangeInput(inputId = 'date_range',
+                           label = "Select date range",
+                           start = min(df$date),
+                           end = max(df$date)),
+            actionButton(inputId = "show", 
+                         label = "Show Instructions")
         ),
 
         # Show a plot of the generated distribution
-        mainPanel(
-           plotOutput("distPlot")
-        )
+        mainPanel(plotlyOutput('distPlot'),
+                  plotlyOutput('daily_outcomes'))
     )
 )
 
 # Define server logic required to draw a histogram
 server <- function(input, output) {
 
-    output$distPlot <- renderPlot({
+    output$distPlot <- renderPlotly({
+      
+      filter_data <- df %>% 
+        filter(date >= input$date_range[1],
+               date <= input$date_range[2],
+               oh_region==input$district)
+      
         # generate bins based on input$bins from ui.R
         #x    <- faithful[, 2]
-      x=df$icu_current_covid
       
-      
-        bins <- seq(min(x), max(x), length.out = input$bins + 1)
 
         # draw the histogram with the specified number of bins
-        hist( as.numeric(x), breaks = bins, col = 'darkgray', border = 'white')
+        #our_plot<-hist( as.numeric(x), breaks = bins, col = 'darkgray', border = 'white')
+        
+        our_plot<-ggplot(filter_data, aes(x=icu_current_covid)) +
+          geom_bar()
+        our_plotly_plot <- ggplotly(our_plot)
+        
     })
+    
+    output$daily_outcomes<- renderPlotly({
+      
+      filter_data <- df %>% 
+        filter(date >= input$date_range[1],
+               date <= input$date_range[2],
+               oh_region==input$district)
+      
+      # generate bins based on input$bins from ui.R
+      #x    <- faithful[, 2]
+      
+      
+      # draw the histogram with the specified number of bins
+      our_plot<-ggplot(filter_data, aes(x=date, y=icu_current_covid)) +
+        geom_line() + 
+        xlab("")
+      our_plotly_plot <- ggplotly(our_plot)
+      return(our_plotly_plot)
+      
+    })
+    observeEvent(input$show, {
+      
+      print(input$date_range)
+      
+      showModal(modalDialog(
+        title = "Important message",
+        "This is an important message!"
+      ))
+    })
+    
 }
 
 # Run the application 
