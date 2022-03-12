@@ -15,6 +15,7 @@ library(plotly)
 library(bslib)
 #load the data--------------------
 df <- read_csv('data/icu.csv')
+df_hosp_breakdown<-read_csv('data/hosp_icu_c19_breakdown.csv')
 a<-1
 # Define UI for application that draws a histogram
 ui <- fluidPage(
