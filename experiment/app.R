@@ -13,9 +13,11 @@ library(readr)
 library(ggplot2)
 library(plotly)
 library(bslib)
+library(reshape2)
 #load the data--------------------
 df <- read_csv('data/icu.csv')
 df_hosp_breakdown<-read_csv('data/hosp_icu_c19_breakdown.csv')
+df_icu_beds<-read_csv('data/icu_beds.csv')
 a<-1
 # Define UI for application that draws a histogram
 ui <- fluidPage(
@@ -42,7 +44,12 @@ ui <- fluidPage(
 
         # Show a plot of the generated distribution
         mainPanel(plotlyOutput('distPlot'),
-                  plotlyOutput('daily_outcomes'))
+                  plotlyOutput('daily_outcomes'),
+                  plotlyOutput('breakdown'),
+                  plotlyOutput('icu_breakdown'),
+                  plotlyOutput('adult_beds')
+                  
+        )
     )
 )
 
@@ -55,6 +62,14 @@ server <- function(input, output) {
         filter(date >= input$date_range[1],
                date <= input$date_range[2],
                oh_region==input$district)
+      filter_data_hosp_breakdown <- df_hosp_breakdown %>% 
+        filter(date >= input$date_range[1],
+               date <= input$date_range[2],
+        )
+      filter_data_icu_beds <- df_icu_beds %>% 
+        filter(date >= input$date_range[1],
+               date <= input$date_range[2],
+        )
       
         # generate bins based on input$bins from ui.R
         #x    <- faithful[, 2]
@@ -70,24 +85,131 @@ server <- function(input, output) {
     })
     
     output$daily_outcomes<- renderPlotly({
-      
+      #choose the data from right time
       filter_data <- df %>% 
         filter(date >= input$date_range[1],
                date <= input$date_range[2],
                oh_region==input$district)
+      filter_data_hosp_breakdown <- df_hosp_breakdown %>% 
+        filter(date >= input$date_range[1],
+               date <= input$date_range[2],
+               )
+      filter_data_icu_beds <- df_icu_beds %>% 
+        filter(date >= input$date_range[1],
+               date <= input$date_range[2],
+               )
       
       # generate bins based on input$bins from ui.R
       #x    <- faithful[, 2]
       
       
       # draw the histogram with the specified number of bins
-      our_plot<-ggplot(filter_data, aes(x=date, y=icu_current_covid)) +
-        geom_line() + 
-        xlab("")
+      
+      
+      our_plot<-ggplot(filter_data)+
+        geom_line(aes(x=date, y=icu_crci_total,colour='total icu of crci')) +
+        geom_line( aes(x=date, y=icu_crci_total_vented, colour='total vented icu of crci'))+
+        scale_colour_manual("",values = c("total icu of crci" = "red","total vented icu of crci" = "green"))
+      
+      
+      our_plot<-our_plot+
+        labs(x="时间", y="故障数", title="时间序列预测图")+
+        theme(legend.position = "bottom") 
+     
       our_plotly_plot <- ggplotly(our_plot)
       return(our_plotly_plot)
       
     })
+    
+    output$breakdown<- renderPlotly({
+      #choose the data from right time
+      
+      filter_data_hosp_breakdown <- df_hosp_breakdown %>% 
+        filter(date >= input$date_range[1],
+               date <= input$date_range[2],
+        )
+      
+      # generate bins based on input$bins from ui.R
+      #x    <- faithful[, 2]
+      
+      
+      # draw the histogram with the specified number of bins
+      hosp_breakdown<- melt(filter_data_hosp_breakdown[,c(1,2,3)],id.vars="date",variable.name="type",value.name="pop")
+      
+      our_plot<-ggplot(hosp_breakdown)+
+        geom_bar(stat = 'identity',aes(x=date, y=pop,fill =type),position='stack')
+      
+      
+      our_plot<-our_plot+
+        labs(x="时间", y="数量", title="住院人数比例随时间变化")+
+        theme(legend.position = "bottom") 
+      
+      our_plotly_plot <- ggplotly(our_plot)
+      return(our_plotly_plot)
+      
+    })
+    
+    output$icu_breakdown<- renderPlotly({
+      #choose the data from right time
+      
+      filter_data_hosp_breakdown <- df_hosp_breakdown %>% 
+        filter(date >= input$date_range[1],
+               date <= input$date_range[2],
+        )
+      
+      # generate bins based on input$bins from ui.R
+      #x    <- faithful[, 2]
+      
+      
+      # draw the histogram with the specified number of bins
+      hosp_breakdown<- melt(filter_data_hosp_breakdown[,c(1,4,5)],id.vars="date",variable.name="type",value.name="pop")
+      
+      our_plot<-ggplot(hosp_breakdown)+
+        #geom_bar(stat = 'identity',aes(x=date, y=hosp_for_covid,colour='red'),position='stack') +
+        #geom_bar(stat = 'identity',aes(x=date, y=hosp_other_conditions,colour='blue'),position='stack')
+        geom_bar(stat = 'identity',aes(x=date, y=pop,fill =type),position='stack')
+      
+      
+      our_plot<-our_plot+
+        labs(x="时间", y="比例", title="icu人数比例随时间变化")+
+        theme(legend.position = "bottom") 
+      
+      our_plotly_plot <- ggplotly(our_plot)
+      return(our_plotly_plot)
+      
+    })
+    
+    output$adult_beds<- renderPlotly({
+      #choose the data from right time
+      
+      filter_data_icu_beds <- df_icu_beds %>% 
+        filter(date >= input$date_range[1],
+               date <= input$date_range[2],
+        )
+      
+      # generate bins based on input$bins from ui.R
+      #x    <- faithful[, 2]
+      
+      
+      # draw the histogram with the specified number of bins
+      
+      
+      hosp_breakdown<- melt(filter_data_icu_beds[,c(1,4,2,3)],id.vars="date",variable.name="type",value.name="pop")
+      
+      our_plot<-ggplot(hosp_breakdown)+
+        #geom_bar(stat = 'identity',aes(x=date, y=hosp_for_covid,colour='red'),position='stack') +
+        #geom_bar(stat = 'identity',aes(x=date, y=hosp_other_conditions,colour='blue'),position='stack')
+        geom_bar(stat = 'identity',aes(x=date, y=pop,fill =type),position='stack')
+      
+      
+      our_plot<-our_plot+
+        labs(x="时间", y="数量", title="成人床位情况")
+      
+      our_plotly_plot <- ggplotly(our_plot)
+      return(our_plotly_plot)
+      
+    })
+    
     observeEvent(input$show, {
       
       print(input$date_range)
