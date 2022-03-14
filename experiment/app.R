@@ -20,10 +20,11 @@ df <- read_csv('data/icu.csv')
 df_hosp_breakdown<-read_csv('data/hosp_icu_c19_breakdown.csv')
 df_icu_beds<-read_csv('data/icu_beds.csv')
 a<-1
+theme_set(theme_classic())
 # Define UI for application that draws a histogram
 ui <- fluidPage(
 
-  theme = bs_theme(bootswatch = "minty"),
+  theme = bs_theme(bootswatch = "cosmo"),
     # Application title
     titlePanel("hospital and icu"),
 
@@ -53,7 +54,6 @@ ui <- fluidPage(
         # Show a plot of the generated distribution
         mainPanel(plotOutput('perc_adult'),
                   plotOutput('perc_child'),
-                  plotlyOutput('distPlot'),
                   plotlyOutput('daily_outcomes'),
                   plotlyOutput('breakdown'),
                   plotlyOutput('icu_breakdown'),
@@ -108,34 +108,6 @@ server <- function(input, output) {
     
   })
 
-    output$distPlot <- renderPlotly({
-      
-      filter_data <- df %>% 
-        filter(date >= input$date_range[1],
-               date <= input$date_range[2],
-               oh_region==input$district)
-      filter_data_hosp_breakdown <- df_hosp_breakdown %>% 
-        filter(date >= input$date_range[1],
-               date <= input$date_range[2],
-        )
-      filter_data_icu_beds <- df_icu_beds %>% 
-        filter(date >= input$date_range[1],
-               date <= input$date_range[2],
-        )
-      
-        # generate bins based on input$bins from ui.R
-        #x    <- faithful[, 2]
-      
-
-        # draw the histogram with the specified number of bins
-        #our_plot<-hist( as.numeric(x), breaks = bins, col = 'darkgray', border = 'white')
-        
-        our_plot<-ggplot(filter_data, aes(x=icu_current_covid)) +
-          geom_bar()
-        our_plotly_plot <- ggplotly(our_plot)
-        return(our_plotly_plot)
-        
-    })
     
     output$daily_outcomes<- renderPlotly({
       #choose the data from right time
@@ -181,10 +153,6 @@ server <- function(input, output) {
         filter(date >= input$date_range[1],
                date <= input$date_range[2],
         )
-      
-      # generate bins based on input$bins from ui.R
-      #x    <- faithful[, 2]
-      
       
       # draw the histogram with the specified number of bins
       hosp_breakdown<- melt(filter_data_hosp_breakdown[,c(1,2,3)],id.vars="date",variable.name="type",value.name="pop")

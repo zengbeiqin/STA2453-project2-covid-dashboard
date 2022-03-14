@@ -8,7 +8,24 @@
 #
 
 library(shiny)
+library(dplyr)
+library(readr)
+library(ggplot2)
+library(plotly)
+library(bslib)
+library(reshape2)
+library(ggpubr)
 
+
+df <- read_csv('data/covidtesting.csv')
+vac_df<-read_csv('data/vaccines_by_age.csv')
+df$dailydeath=  c(NA,diff(df$Deaths))
+df$dailyalpha=c(NA,diff(df$Total_Lineage_B.1.1.7_Alpha))
+df$dailybeta=c(NA,diff(df$Total_Lineage_B.1.351_Beta))
+df$dailygamma=c(NA,diff(df$Total_Lineage_P.1_Gamma))
+df$dailydelta=c(NA,diff(df$Total_Lineage_B.1.617.2_Delta))
+print(colnames(df))
+print(min(df$ReportedDate))
 # Define UI for application that draws a histogram
 ui <- fluidPage(
 
@@ -18,16 +35,26 @@ ui <- fluidPage(
     # Sidebar with a slider input for number of bins 
     sidebarLayout(
         sidebarPanel(
-            sliderInput("bins",
-                        "Number of bins:",
-                        min = 1,
-                        max = 50,
-                        value = 30)
+          dateRangeInput(inputId = 'date_range',
+                         label = "Select date range",
+                         start = min(df$ReportedDate),
+                         end = max(df$ReportedDate)),
+          dateInput(inputId='show_date',
+                    label="select the date to show",
+                    value='2022-01-01',
+                    min='2021-11-11',
+                    max='2022-03-11')
+          
         ),
 
         # Show a plot of the generated distribution
         mainPanel(
-           plotOutput("distPlot")
+           plotlyOutput("dailycomfirmed"),
+           plotlyOutput("totalcase"),
+           plotlyOutput("totaldeath"),
+           plotlyOutput("dailydeath"),
+           plotlyOutput("covidtype"),
+           plotlyOutput("vac")
         )
     )
 )
@@ -35,27 +62,91 @@ ui <- fluidPage(
 # Define server logic required to draw a histogram
 server <- function(input, output) {
 
-    output$distPlot <- renderPlot({
-        # generate bins based on input$bins from ui.R
-      data <- data.frame(
-        category=c("A", "B", "C"),
-        count=c(10, 60, 30)
-      )
-      print(data)
-      # Compute percentages
-      data$fraction = data$count / sum(data$count)
+    output$dailycomfirmed <- renderPlotly({
+      filter_df <- df %>% 
+        filter(ReportedDate >= input$date_range[1],
+               ReportedDate <= input$date_range[2])
+      our_plot<-ggplot(filter_df)+
+        geom_bar(stat='identity',aes(x=ReportedDate, y=ConfirmedPositive))
+      our_plot<-our_plot+
+        labs(x="时间", y="数量", title="确定是阳性/每日")
+      our_plotly_plot <- ggplotly(our_plot)
+      return(our_plotly_plot)
+    })
+    
+    output$totalcase <- renderPlotly({
+      filter_df <- df %>% 
+        filter(ReportedDate >= input$date_range[1],
+               ReportedDate <= input$date_range[2])
+      our_plot<-ggplot(filter_df)+
+        geom_bar(stat='identity',aes(x=ReportedDate, y=TotalCases))
+      our_plot<-our_plot+
+        labs(x="时间", y="数量", title="确诊总案例")
+      our_plotly_plot <- ggplotly(our_plot)
+      return(our_plotly_plot)
+    })
+    
+    output$totaldeath <- renderPlotly({
+      filter_df <- df %>% 
+        filter(ReportedDate >= input$date_range[1],
+               ReportedDate <= input$date_range[2])
+      our_plot<-ggplot(filter_df)+
+        geom_bar(stat='identity',aes(x=ReportedDate, y=Deaths))
+      our_plot<-our_plot+
+        labs(x="时间", y="数量", title="死亡总数")
+      our_plotly_plot <- ggplotly(our_plot)
+      return(our_plotly_plot)
+    })
+    
+    output$dailydeath <- renderPlotly({
+      filter_df <- df %>% 
+        filter(ReportedDate >= input$date_range[1],
+               ReportedDate <= input$date_range[2])
       
-      # Compute the cumulative percentages (top of each rectangle)
-      data$ymax = cumsum(data$fraction)
+      our_plot<-ggplot(filter_df)+
+        geom_bar(stat='identity',aes(x=ReportedDate, y=dailydeath))
+      our_plot<-our_plot+
+        labs(x="时间", y="数量", title="每日死亡")
+      our_plotly_plot <- ggplotly(our_plot)
+      return(our_plotly_plot)
       
-      # Compute the bottom of each rectangle
-      data$ymin = c(0, head(data$ymax, n=-1))
+    })
+    output$covidtype <- renderPlotly({
+      filter_df <- df %>% 
+        filter(ReportedDate >= '2021-01-01',
+               ReportedDate <= '2021-12-31')
+      our_plot<-ggplot(filter_df)+
+        geom_line(aes(x=ReportedDate, y=dailyalpha,color="alpha"))+
+        geom_line(aes(x=ReportedDate, y=dailybeta,color="beta"))+
+        geom_line(aes(x=ReportedDate, y=dailygamma,color='gamma'))+
+        geom_line(aes(x=ReportedDate, y=dailydelta,color='delta'))
+      our_plot<-our_plot+
+        labs(x="时间", y="数量", title="type")
+      our_plotly_plot <- ggplotly(our_plot)
+      return(our_plotly_plot)
       
-      # Make the plot
-      ggplot(data, aes(ymax=ymax, ymin=ymin, xmax=4, xmin=3, fill=category)) +
-        geom_rect() +
-        coord_polar(theta="y") + # Try to remove that to understand how the chart is built initially
-        xlim(c(2, 4)) # Try to remove that to see how to make a pie chart
+    })
+    
+    output$vac<- renderPlotly({
+      #choose the data from right time
+      
+      filter_vac <- vac_df %>% 
+        filter(Date == input$show_date,
+               Agegroup!="Adults_18plus"&Agegroup!="Ontario_12plus"&Agegroup!="Undisclosed_or_missing"
+        )
+      
+      
+      our_plot<-ggplot(filter_vac)+
+        geom_bar(stat = 'identity',aes(x=Agegroup, y=Percent_fully_vaccinated,fill=Agegroup))
+      
+      
+      our_plot<-our_plot+
+        labs(x="时间", y="数量", title="住院人数比例随时间变化")+
+        theme(legend.position = "bottom") 
+      
+      our_plotly_plot <- ggplotly(our_plot)
+      return(our_plotly_plot)
+      
     })
 }
 
