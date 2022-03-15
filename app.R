@@ -616,7 +616,7 @@ server <- function(input, output) {
         filter(ReportedDate >= input$date_range_sum[1],
                ReportedDate <= input$date_range_sum[2])
       our_plot<-ggplot(filter_df_summary)+
-        geom_bar(stat='identity',aes(x=ReportedDate, y=Deaths))
+        geom_line(stat='identity',aes(x=ReportedDate, y=Deaths))
       our_plot<-our_plot+
         labs(x="date", y="number", title="total number of deaths")+
         theme(plot.title = element_text(hjust=0.5))
