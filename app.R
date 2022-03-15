@@ -68,7 +68,8 @@ df_summary$dailydelta=c(NA,diff(df_summary$Total_Lineage_B.1.617.2_Delta))
 sum_ui <- fluidPage(
   
   # Application title
-  titlePanel("Old Faithful Geyser Data"),
+  titlePanel(h1("Data Summary", align="center",
+                style ="font-family: 'times'; font-size: 32pt ")),
   
   # Sidebar with a slider input for number of bins 
   sidebarLayout(
@@ -87,6 +88,7 @@ sum_ui <- fluidPage(
     
     # Show a plot of the generated distribution
     mainPanel(
+      p("In this section, we summarize all the important data from the dashboard",align="center"),
       plotlyOutput("dailycomfirmed"),
       plotlyOutput("totalcase"),
       plotlyOutput("totaldeath"),
@@ -502,8 +504,7 @@ server <- function(input, output) {
       #choose the data from right time
       
       filter_data_icu_beds <- df_icu_beds %>% 
-        filter(date >= input$date_range[1],
-               date <= input$date_range[2],
+        filter(date >= '2022-01-10'
         )
       
       # generate bins based on input$bins from ui.R
