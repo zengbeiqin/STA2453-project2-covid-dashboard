@@ -435,8 +435,9 @@ server <- function(input, output) {
       ggplot(adult_icu, aes(ymax=ymax, ymin=ymin, xmax=4, xmin=3, fill=type)) +
         geom_rect() +
         coord_polar(theta="y") + # Try to remove that to understand how the chart is built initially
-        xlim(c(2, 4)) # Try to remove that to see how to make a pie chart
-      
+        xlim(c(2, 4))+ # Try to remove that to see how to make a pie chart
+        theme(legend.position = 'top',axis.line=element_blank(),axis.text=element_blank(), axis.title = element_blank())
+        
     })
     
     output$perc_child<- renderPlot({
@@ -456,8 +457,9 @@ server <- function(input, output) {
       ggplot(child_icu, aes(ymax=ymax, ymin=ymin, xmax=4, xmin=3, fill=type)) +
         geom_rect() +
         coord_polar(theta="y") + # Try to remove that to understand how the chart is built initially
-        xlim(c(2, 4)) # Try to remove that to see how to make a pie chart
-      
+        xlim(c(2, 4))+ # Try to remove that to see how to make a pie chart
+        theme(legend.position = 'top',axis.line=element_blank(),axis.text=element_blank(), axis.title = element_blank())
+  
     })
     
     
@@ -612,7 +614,7 @@ server <- function(input, output) {
       
       
       our_plot<-our_plot+
-        labs(x="date", y="number", title="Number of ICU beds for children")+
+        labs(x="date", y="number", title="Number of ICU beds for children")
         
       
       our_plotly_plot <- ggplotly(our_plot)
