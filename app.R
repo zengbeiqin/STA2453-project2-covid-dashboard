@@ -13,6 +13,11 @@ library(plotly)
 library(tidyverse)
 library(DT)
 library(bslib)
+library(dplyr)
+library(readr)
+library(ggplot2)
+library(reshape2)
+library(ggpubr)
 
 my_theme <- bs_theme(bootswatch = "cosmo")
 theme_set(theme_classic())
@@ -45,6 +50,94 @@ data_vac_status_hosp <- data_vac_status_hosp_icu %>%
   select(date, hospitalnonicu_unvac, hospitalnonicu_partial_vac, hospitalnonicu_full_vac) %>%
   pivot_longer(cols = !date, names_to = "Group", values_to = "value")
 
+# data for hospital page
+df <- read_csv('experiment/data/icu.csv')
+df_hosp_breakdown<-read_csv('experiment/data/hosp_icu_c19_breakdown.csv')
+df_icu_beds<-read_csv('experiment/data/icu_beds.csv')
+
+#data for summary page
+df_summary <- read_csv('main/data/covidtesting.csv')
+vac_df_summary<-read_csv('main/data/vaccines_by_age.csv')
+df_summary$dailydeath=  c(NA,diff(df_summary$Deaths))
+df_summary$dailyalpha=c(NA,diff(df_summary$Total_Lineage_B.1.1.7_Alpha))
+df_summary$dailybeta=c(NA,diff(df_summary$Total_Lineage_B.1.351_Beta))
+df_summary$dailygamma=c(NA,diff(df_summary$Total_Lineage_P.1_Gamma))
+df_summary$dailydelta=c(NA,diff(df_summary$Total_Lineage_B.1.617.2_Delta))
+
+# ui for summary page
+sum_ui <- fluidPage(
+  
+  # Application title
+  titlePanel("Old Faithful Geyser Data"),
+  
+  # Sidebar with a slider input for number of bins 
+  sidebarLayout(
+    sidebarPanel(
+      dateRangeInput(inputId = 'date_range_sum',
+                     label = "Select date range",
+                     start = min(df_summary$ReportedDate),
+                     end = max(df_summary$ReportedDate)),
+      dateInput(inputId='show_date_sum',
+                label="select the date to show",
+                value='2022-01-01',
+                min='2021-11-11',
+                max='2022-03-11')
+      
+    ),
+    
+    # Show a plot of the generated distribution
+    mainPanel(
+      plotlyOutput("dailycomfirmed"),
+      plotlyOutput("totalcase"),
+      plotlyOutput("totaldeath"),
+      plotlyOutput("dailydeath"),
+      plotlyOutput("covidtype"),
+      plotlyOutput("vac")
+    )
+  )
+)
+#ui for hospital and icu
+hos_ui <- fluidPage(
+  
+  theme = bs_theme(bootswatch = "cosmo"),
+  # Application title
+  titlePanel("hospital and icu"),
+  
+  # Sidebar with a slider input for number of bins 
+  sidebarLayout(
+    sidebarPanel(
+      selectInput(inputId = "district",
+                  label = "select district", 
+                  selected = "TORONTO", choices = c("TORONTO", "CENTRAL","EAST","WEST","NORTH")),
+      checkboxInput(inputId = "vented",
+                    label = "On ventilators", value = F),
+      dateRangeInput(inputId = 'date_range',
+                     label = "Select date range",
+                     start = min(df$date),
+                     end = max(df$date)),
+      dateInput(inputId='show_date',
+                label="select the date to show",
+                value='2022-01-01',
+                min='2021-11-11',
+                max='2022-03-11'
+      ),
+      actionButton(inputId = "show", 
+                   label = "Show Instructions")
+      
+    ),
+    
+    # Show a plot of the generated distribution
+    mainPanel(plotOutput('perc_adult'),
+              plotOutput('perc_child'),
+              plotlyOutput('daily_outcomes'),
+              plotlyOutput('breakdown'),
+              plotlyOutput('icu_breakdown'),
+              plotlyOutput('adult_beds'),
+              plotlyOutput('child_beds')
+              
+    )
+  )
+)
 
 # Define UI for vaccination page
 vaccine_ui <- fluidPage(
@@ -143,10 +236,10 @@ cases_ui <- fluidPage(
 ui <- navbarPage(
   "Covid-Dashboard",
   theme = my_theme,
-  tabPanel("Summary"),
+  tabPanel("Summary",sum_ui),
   tabPanel("Cases", cases_ui),
   tabPanel("Vaccinations", vaccine_ui),
-  tabPanel("Hospitalization/ICU"),
+  tabPanel("Hospitalization/ICU",hos_ui),
   )
 
 
@@ -271,6 +364,297 @@ server <- function(input, output) {
       return(our_plotly_plot)
     })
     
+    output$perc_adult<- renderPlot({
+      #choose the data from right time
+      
+      filter_data_icu_beds <- df_icu_beds %>% 
+        filter(date == input$show_date
+        )
+      
+      # draw the histogram with the specified number of bins
+      adult_icu<- data.frame(melt(filter_data_icu_beds[,c(4,2,3)],variable.name="type",value.name="pop"))
+      adult_icu$fraction=adult_icu$pop/sum(adult_icu$pop)
+      adult_icu$ymax=cumsum(adult_icu$fraction)
+      adult_icu$ymin=c(0,head(adult_icu$ymax,n=-1))
+      
+      # Make the plot
+      ggplot(adult_icu, aes(ymax=ymax, ymin=ymin, xmax=4, xmin=3, fill=type)) +
+        geom_rect() +
+        coord_polar(theta="y") + # Try to remove that to understand how the chart is built initially
+        xlim(c(2, 4)) # Try to remove that to see how to make a pie chart
+      
+    })
+    
+    output$perc_child<- renderPlot({
+      #choose the data from right time
+      
+      filter_data_icu_beds <- df_icu_beds %>% 
+        filter(date == input$show_date
+        )
+      
+      # draw the histogram with the specified number of bins
+      child_icu<- data.frame(melt(filter_data_icu_beds[,c(9,7,8)],variable.name="type",value.name="pop"))
+      child_icu$fraction=child_icu$pop/sum(child_icu$pop)
+      child_icu$ymax=cumsum(child_icu$fraction)
+      child_icu$ymin=c(0,head(child_icu$ymax,n=-1))
+      
+      # Make the plot
+      ggplot(child_icu, aes(ymax=ymax, ymin=ymin, xmax=4, xmin=3, fill=type)) +
+        geom_rect() +
+        coord_polar(theta="y") + # Try to remove that to understand how the chart is built initially
+        xlim(c(2, 4)) # Try to remove that to see how to make a pie chart
+      
+    })
+    
+    
+    output$daily_outcomes<- renderPlotly({
+      #choose the data from right time
+      filter_data <- df %>% 
+        filter(date >= input$date_range[1],
+               date <= input$date_range[2],
+               oh_region==input$district)
+      filter_data_hosp_breakdown <- df_hosp_breakdown %>% 
+        filter(date >= input$date_range[1],
+               date <= input$date_range[2],
+        )
+      filter_data_icu_beds <- df_icu_beds %>% 
+        filter(date >= input$date_range[1],
+               date <= input$date_range[2],
+        )
+      
+      # generate bins based on input$bins from ui.R
+      #x    <- faithful[, 2]
+      
+      
+      # draw the histogram with the specified number of bins
+      
+      
+      our_plot<-ggplot(filter_data)+
+        geom_line(aes(x=date, y=icu_crci_total,colour='total icu of crci')) +
+        geom_line( aes(x=date, y=icu_crci_total_vented, colour='total vented icu of crci'))+
+        scale_colour_manual("",values = c("total icu of crci" = "red","total vented icu of crci" = "green"))
+      
+      
+      our_plot<-our_plot+
+        labs(x="时间", y="故障数", title="时间序列预测图")+
+        theme(legend.position = "bottom") 
+      
+      our_plotly_plot <- ggplotly(our_plot)
+      return(our_plotly_plot)
+      
+    })
+    
+    output$breakdown<- renderPlotly({
+      #choose the data from right time
+      
+      filter_data_hosp_breakdown <- df_hosp_breakdown %>% 
+        filter(date >= input$date_range[1],
+               date <= input$date_range[2],
+        )
+      
+      # draw the histogram with the specified number of bins
+      hosp_breakdown<- melt(filter_data_hosp_breakdown[,c(1,2,3)],id.vars="date",variable.name="type",value.name="pop")
+      
+      our_plot<-ggplot(hosp_breakdown)+
+        geom_bar(stat = 'identity',aes(x=date, y=pop,fill =type),position='stack')
+      
+      
+      our_plot<-our_plot+
+        labs(x="时间", y="数量", title="住院人数比例随时间变化")+
+        theme(legend.position = "bottom") 
+      
+      our_plotly_plot <- ggplotly(our_plot)
+      return(our_plotly_plot)
+      
+    })
+    
+    output$icu_breakdown<- renderPlotly({
+      #choose the data from right time
+      
+      filter_data_hosp_breakdown <- df_hosp_breakdown %>% 
+        filter(date >= input$date_range[1],
+               date <= input$date_range[2],
+        )
+      
+      # generate bins based on input$bins from ui.R
+      #x    <- faithful[, 2]
+      
+      
+      # draw the histogram with the specified number of bins
+      hosp_breakdown<- melt(filter_data_hosp_breakdown[,c(1,4,5)],id.vars="date",variable.name="type",value.name="pop")
+      
+      our_plot<-ggplot(hosp_breakdown)+
+        #geom_bar(stat = 'identity',aes(x=date, y=hosp_for_covid,colour='red'),position='stack') +
+        #geom_bar(stat = 'identity',aes(x=date, y=hosp_other_conditions,colour='blue'),position='stack')
+        geom_bar(stat = 'identity',aes(x=date, y=pop,fill =type),position='stack')
+      
+      
+      our_plot<-our_plot+
+        labs(x="时间", y="比例", title="icu人数比例随时间变化")+
+        theme(legend.position = "bottom") 
+      
+      our_plotly_plot <- ggplotly(our_plot)
+      return(our_plotly_plot)
+      
+    })
+    
+    output$adult_beds<- renderPlotly({
+      #choose the data from right time
+      
+      filter_data_icu_beds <- df_icu_beds %>% 
+        filter(date >= input$date_range[1],
+               date <= input$date_range[2],
+        )
+      
+      # generate bins based on input$bins from ui.R
+      #x    <- faithful[, 2]
+      
+      
+      # draw the histogram with the specified number of bins
+      
+      
+      hosp_breakdown<- melt(filter_data_icu_beds[,c(1,4,2,3)],id.vars="date",variable.name="type",value.name="pop")
+      
+      our_plot<-ggplot(hosp_breakdown)+
+        #geom_bar(stat = 'identity',aes(x=date, y=hosp_for_covid,colour='red'),position='stack') +
+        #geom_bar(stat = 'identity',aes(x=date, y=hosp_other_conditions,colour='blue'),position='stack')
+        geom_bar(stat = 'identity',aes(x=date, y=pop,fill =type),position='stack')
+      
+      
+      our_plot<-our_plot+
+        labs(x="时间", y="数量", title="成人床位情况")
+      
+      our_plotly_plot <- ggplotly(our_plot)
+      return(our_plotly_plot)
+      
+    })
+    
+    output$child_beds<- renderPlotly({
+      #choose the data from right time
+      
+      filter_data_icu_beds <- df_icu_beds %>% 
+        filter(date >= input$date_range[1],
+               date <= input$date_range[2],
+        )
+      
+      # generate bins based on input$bins from ui.R
+      #x    <- faithful[, 2]
+      
+      
+      # draw the histogram with the specified number of bins
+      
+      
+      hosp_breakdown<- melt(filter_data_icu_beds[,c(1,9,7,8)],id.vars="date",variable.name="type",value.name="pop")
+      
+      our_plot<-ggplot(hosp_breakdown)+
+        geom_bar(stat = 'identity',aes(x=date, y=pop,fill =type),position='stack')
+      
+      
+      
+      our_plot<-our_plot+
+        labs(x="时间", y="数量", title="幼儿床位情况")
+      
+      our_plotly_plot <- ggplotly(our_plot)
+      return(our_plotly_plot)
+      
+    })
+    
+    observeEvent(input$show, {
+      
+      print(input$date_range)
+      
+      showModal(modalDialog(
+        title = "Important message",
+        "This is an important message!"
+      ))
+    })
+    
+    output$dailycomfirmed <- renderPlotly({
+      filter_df_summary <- df_summary %>% 
+        filter(ReportedDate >= input$date_range_sum[1],
+               ReportedDate <= input$date_range_sum[2])
+      our_plot<-ggplot(filter_df_summary)+
+        geom_bar(stat='identity',aes(x=ReportedDate, y=ConfirmedPositive))
+      our_plot<-our_plot+
+        labs(x="时间", y="数量", title="确定是阳性/每日")
+      our_plotly_plot <- ggplotly(our_plot)
+      return(our_plotly_plot)
+    })
+    
+    output$totalcase <- renderPlotly({
+      filter_df_summary <- df_summary %>% 
+        filter(ReportedDate >= input$date_range_sum[1],
+               ReportedDate <= input$date_range_sum[2])
+      our_plot<-ggplot(filter_df_summary)+
+        geom_bar(stat='identity',aes(x=ReportedDate, y=TotalCases))
+      our_plot<-our_plot+
+        labs(x="时间", y="数量", title="确诊总案例")
+      our_plotly_plot <- ggplotly(our_plot)
+      return(our_plotly_plot)
+    })
+    
+    output$totaldeath <- renderPlotly({
+      filter_df_summary <- df_summary %>% 
+        filter(ReportedDate >= input$date_range_sum[1],
+               ReportedDate <= input$date_range_sum[2])
+      our_plot<-ggplot(filter_df_summary)+
+        geom_bar(stat='identity',aes(x=ReportedDate, y=Deaths))
+      our_plot<-our_plot+
+        labs(x="时间", y="数量", title="死亡总数")
+      our_plotly_plot <- ggplotly(our_plot)
+      return(our_plotly_plot)
+    })
+    
+    output$dailydeath <- renderPlotly({
+      filter_df_summary <- df_summary %>% 
+        filter(ReportedDate >= input$date_range_sum[1],
+               ReportedDate <= input$date_range_sum[2])
+      
+      our_plot<-ggplot(filter_df_summary)+
+        geom_bar(stat='identity',aes(x=ReportedDate, y=dailydeath))
+      our_plot<-our_plot+
+        labs(x="时间", y="数量", title="每日死亡")
+      our_plotly_plot <- ggplotly(our_plot)
+      return(our_plotly_plot)
+      
+    })
+    output$covidtype <- renderPlotly({
+      filter_df_summary <- df_summary %>% 
+        filter(ReportedDate >= '2021-01-01',
+               ReportedDate <= '2021-12-31')
+      our_plot<-ggplot(filter_df_summary)+
+        geom_line(aes(x=ReportedDate, y=dailyalpha,color="alpha"))+
+        geom_line(aes(x=ReportedDate, y=dailybeta,color="beta"))+
+        geom_line(aes(x=ReportedDate, y=dailygamma,color='gamma'))+
+        geom_line(aes(x=ReportedDate, y=dailydelta,color='delta'))
+      our_plot<-our_plot+
+        labs(x="时间", y="数量", title="type")
+      our_plotly_plot <- ggplotly(our_plot)
+      return(our_plotly_plot)
+      
+    })
+    
+    output$vac<- renderPlotly({
+      #choose the data from right time
+      
+      filter_vac <- vac_df_summary %>% 
+        filter(Date == input$show_date_sum,
+               Agegroup!="Adults_18plus"&Agegroup!="Ontario_12plus"&Agegroup!="Undisclosed_or_missing"
+        )
+      
+      
+      our_plot<-ggplot(filter_vac)+
+        geom_bar(stat = 'identity',aes(x=Agegroup, y=Percent_fully_vaccinated,fill=Agegroup))
+      
+      
+      our_plot<-our_plot+
+        labs(x="时间", y="数量", title="住院人数比例随时间变化")+
+        theme(legend.position = "bottom") 
+      
+      our_plotly_plot <- ggplotly(our_plot)
+      return(our_plotly_plot)
+      
+    })
 }
 
 # Run the application 
