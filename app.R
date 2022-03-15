@@ -70,15 +70,17 @@ sum_ui <- fluidPage(
   # Application title
   titlePanel(h1("Data Summary", align="center",
                 style ="font-family: 'times'; font-size: 32pt ")),
+  tags$hr(),
   fluidRow(column(8, offset = 2,
                   p("In this section, we summarize all the important data from the dashboard",align="center")
   )   ),
   fluidRow(column(3,
-                  fluidRow(p("   \n  \n  \n")),
+                  br(),
+                  br(),
                   wellPanel(
                     
                     dateRangeInput(inputId = 'date_range_sum',
-                                   label = "Select date range",
+                                   label = "Select date range for confirmed cases",
                                    start = min(df_summary$ReportedDate),
                                    end = max(df_summary$ReportedDate)),
                     dateInput(inputId='show_date_sum',
@@ -102,7 +104,13 @@ sum_ui <- fluidPage(
   ),
   
   fluidRow(
-    column(3,plotlyOutput("vac")),
+    column(3,
+           wellPanel(
+             
+             dateRangeInput(inputId = 'date_range_sum_death',
+                            label = "Select date range for death",
+                            start = min(df_summary$ReportedDate),
+                            end = max(df_summary$ReportedDate)))),
     column(5,plotlyOutput("dailydeath")),
     column(4,plotlyOutput("totaldeath"))
   ),
@@ -116,42 +124,73 @@ hos_ui <- fluidPage(
   
   theme = bs_theme(bootswatch = "cosmo"),
   # Application title
-  titlePanel("hospital and icu"),
-  
-  # Sidebar with a slider input for number of bins 
-  sidebarLayout(
-    sidebarPanel(
-      selectInput(inputId = "district",
-                  label = "select district", 
-                  selected = "TORONTO", choices = c("TORONTO", "CENTRAL","EAST","WEST","NORTH")),
-      checkboxInput(inputId = "vented",
-                    label = "On ventilators", value = F),
-      dateRangeInput(inputId = 'date_range',
-                     label = "Select date range",
-                     start = min(df$date),
-                     end = max(df$date)),
-      dateInput(inputId='show_date',
-                label="select the date to show",
-                value='2022-01-01',
-                min='2021-11-11',
-                max='2022-03-11'
-      ),
-      actionButton(inputId = "show", 
-                   label = "Show Instructions")
+  titlePanel(h1("Hospital and ICU", align="center",
+                style ="font-family: 'times'; font-size: 32pt ")),
+  tags$hr(),
+  h2("Bed Ratio for Selected Dates"),
+  fluidRow(
+    column(
+      2,
+      wellPanel(dateInput(inputId='show_date',
+                  label="select the date to show",
+                  value='2022-01-01',
+                  min='2021-11-11',
+                  max='2022-03-11'
+                ))
+    ),
+    column(
+      5,plotOutput('perc_adult')
       
     ),
-    
-    # Show a plot of the generated distribution
-    mainPanel(plotOutput('perc_adult'),
-              plotOutput('perc_child'),
-              plotlyOutput('daily_outcomes'),
-              plotlyOutput('breakdown'),
-              plotlyOutput('icu_breakdown'),
-              plotlyOutput('adult_beds'),
-              plotlyOutput('child_beds')
-              
+    column(
+      5,plotOutput('perc_child')
     )
-  )
+  ),
+  tags$hr(),
+  h2("Number of people with Covid-19 in ICU"),
+  fluidRow(
+    column(
+      2,
+      wellPanel(dateRangeInput(inputId = 'date_range_icu_line',
+                               label = "Select date range",
+                               start = min(df$date),
+                               end = max(df$date)),
+                selectInput(inputId = "district",
+                            label = "select district", 
+                            selected = "TORONTO", choices = c("TORONTO", "CENTRAL","EAST","WEST","NORTH")),
+                actionButton(inputId = "show", 
+                             label = "Show Instructions")
+                )
+    ),
+    column(
+      10,plotlyOutput('daily_outcomes')
+      
+    )
+  ),
+  tags$hr(),
+  fluidRow(
+    column(
+      2,
+      wellPanel(dateRangeInput(inputId = 'date_range',
+                               label = "Select date range",
+                               start = min(df$date),
+                               end = max(df$date))
+      )
+    ),
+    column(
+      5,
+      plotlyOutput('breakdown'),
+      plotlyOutput('icu_breakdown')
+      
+      
+    ),
+    column(
+      5,
+      plotlyOutput('adult_beds'),
+      plotlyOutput('child_beds')
+    )
+  ),
+  
 )
 
 # Define UI for vaccination page
@@ -425,16 +464,16 @@ server <- function(input, output) {
     output$daily_outcomes<- renderPlotly({
       #choose the data from right time
       filter_data <- df %>% 
-        filter(date >= input$date_range[1],
-               date <= input$date_range[2],
+        filter(date >= input$date_range_icu_line[1],
+               date <= input$date_range_icu_line[2],
                oh_region==input$district)
       filter_data_hosp_breakdown <- df_hosp_breakdown %>% 
-        filter(date >= input$date_range[1],
-               date <= input$date_range[2],
+        filter(date >= input$date_range_icu_line[1],
+               date <= input$date_range_icu_line[2],
         )
       filter_data_icu_beds <- df_icu_beds %>% 
-        filter(date >= input$date_range[1],
-               date <= input$date_range[2],
+        filter(date >= input$date_range_icu_line[1],
+               date <= input$date_range_icu_line[2],
         )
       
       # generate bins based on input$bins from ui.R
@@ -447,11 +486,18 @@ server <- function(input, output) {
       our_plot<-ggplot(filter_data)+
         geom_line(aes(x=date, y=icu_crci_total,colour='total icu of crci')) +
         geom_line( aes(x=date, y=icu_crci_total_vented, colour='total vented icu of crci'))+
-        scale_colour_manual("",values = c("total icu of crci" = "red","total vented icu of crci" = "green"))
+        geom_line( aes(x=date, y=icu_current_covid_vented, colour='patient vented and covid positive'))+
+        geom_line( aes(x=date, y=icu_current_covid, colour='patinet in icu and covid positive'))+
+        scale_colour_manual("",values = c(
+          "total icu of crci" = "dark red",
+          "total vented icu of crci" = "dark green",
+          'patient vented and covid positive'="dark blue",
+          'patinet in icu and covid positive'='yellow'
+          ))
       
       
       our_plot<-our_plot+
-        labs(x="时间", y="故障数", title="时间序列预测图")+
+        labs(x="date", y="number", title="ICU COVID-19 population")+
         theme(legend.position = "bottom") 
       
       our_plotly_plot <- ggplotly(our_plot)
@@ -475,7 +521,7 @@ server <- function(input, output) {
       
       
       our_plot<-our_plot+
-        labs(x="时间", y="数量", title="住院人数比例随时间变化")+
+        labs(x="date", y="ratio", title="Covid-19 hospitalization rate changes over time")+
         theme(legend.position = "bottom") 
       
       our_plotly_plot <- ggplotly(our_plot)
@@ -505,7 +551,7 @@ server <- function(input, output) {
       
       
       our_plot<-our_plot+
-        labs(x="时间", y="比例", title="icu人数比例随时间变化")+
+        labs(x="date", y="ratio", title="Covid-19 ICU rate changes over time")+
         theme(legend.position = "bottom") 
       
       our_plotly_plot <- ggplotly(our_plot)
@@ -536,7 +582,7 @@ server <- function(input, output) {
       
       
       our_plot<-our_plot+
-        labs(x="时间", y="数量", title="成人床位情况")
+        labs(x="date", y="number", title="Adult ICU beds")
       
       our_plotly_plot <- ggplotly(our_plot)
       return(our_plotly_plot)
@@ -566,7 +612,8 @@ server <- function(input, output) {
       
       
       our_plot<-our_plot+
-        labs(x="时间", y="数量", title="幼儿床位情况")
+        labs(x="date", y="number", title="Number of ICU beds for children")+
+        
       
       our_plotly_plot <- ggplotly(our_plot)
       return(our_plotly_plot)
@@ -613,8 +660,8 @@ server <- function(input, output) {
     
     output$totaldeath <- renderPlotly({
       filter_df_summary <- df_summary %>% 
-        filter(ReportedDate >= input$date_range_sum[1],
-               ReportedDate <= input$date_range_sum[2])
+        filter(ReportedDate >= input$date_range_sum_death[1],
+               ReportedDate <= input$date_range_sum_death[2])
       our_plot<-ggplot(filter_df_summary)+
         geom_line(stat='identity',aes(x=ReportedDate, y=Deaths))
       our_plot<-our_plot+
@@ -626,8 +673,8 @@ server <- function(input, output) {
     
     output$dailydeath <- renderPlotly({
       filter_df_summary <- df_summary %>% 
-        filter(ReportedDate >= input$date_range_sum[1],
-               ReportedDate <= input$date_range_sum[2])
+        filter(ReportedDate >= input$date_range_sum_death[1],
+               ReportedDate <= input$date_range_sum_death[2])
       
       our_plot<-ggplot(filter_df_summary)+
         geom_bar(stat='identity',aes(x=ReportedDate, y=dailydeath,fill=dailydeath))+
