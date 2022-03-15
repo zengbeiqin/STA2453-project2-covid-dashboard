@@ -20,7 +20,7 @@ library(reshape2)
 library(ggpubr)
 
 my_theme <- bs_theme(bootswatch = "cosmo")
-theme_set(theme_classic())
+#theme_set(theme_light())
 
 #thematic_shiny(font = "auto")
 
@@ -66,35 +66,50 @@ df_summary$dailydelta=c(NA,diff(df_summary$Total_Lineage_B.1.617.2_Delta))
 
 # ui for summary page
 sum_ui <- fluidPage(
-  
-  # Application title
-  titlePanel("Old Faithful Geyser Data"),
-  
-  # Sidebar with a slider input for number of bins 
-  sidebarLayout(
-    sidebarPanel(
-      dateRangeInput(inputId = 'date_range_sum',
-                     label = "Select date range",
-                     start = min(df_summary$ReportedDate),
-                     end = max(df_summary$ReportedDate)),
-      dateInput(inputId='show_date_sum',
-                label="select the date to show",
-                value='2022-01-01',
-                min='2021-11-11',
-                max='2022-03-11')
-      
-    ),
     
-    # Show a plot of the generated distribution
-    mainPanel(
-      plotlyOutput("dailycomfirmed"),
-      plotlyOutput("totalcase"),
-      plotlyOutput("totaldeath"),
-      plotlyOutput("dailydeath"),
-      plotlyOutput("covidtype"),
-      plotlyOutput("vac")
-    )
+  # Application title
+  titlePanel(h1("Data Summary", align="center",
+                style ="font-family: 'times'; font-size: 32pt ")),
+  fluidRow(column(8, offset = 2,
+                  p("In this section, we summarize all the important data from the dashboard",align="center")
+  )   ),
+  fluidRow(column(3,
+                  fluidRow(p("   \n  \n  \n")),
+                  wellPanel(
+                    
+                    dateRangeInput(inputId = 'date_range_sum',
+                                   label = "Select date range",
+                                   start = min(df_summary$ReportedDate),
+                                   end = max(df_summary$ReportedDate)),
+                    dateInput(inputId='show_date_sum',
+                              label="select the date to show",
+                              value='2022-01-01',
+                              min='2021-11-11',
+                              max='2022-03-11'),
+                    actionButton(inputId = "show_sum", 
+                                 label = "Show Instructions")
+                    
+                  )       
+                  
+  ),
+  
+  column(5,
+         plotlyOutput("dailycomfirmed")
+         
+  ),
+  
+  column(4,plotlyOutput("totalcase"))
+  ),
+  
+  fluidRow(
+    column(3,plotlyOutput("vac")),
+    column(5,plotlyOutput("dailydeath")),
+    column(4,plotlyOutput("totaldeath"))
+  ),
+  fluidRow(
+    plotlyOutput("covidtype")
   )
+  
 )
 #ui for hospital and icu
 hos_ui <- fluidPage(
@@ -502,8 +517,7 @@ server <- function(input, output) {
       #choose the data from right time
       
       filter_data_icu_beds <- df_icu_beds %>% 
-        filter(date >= input$date_range[1],
-               date <= input$date_range[2],
+        filter(date >= '2022-01-10'
         )
       
       # generate bins based on input$bins from ui.R
@@ -574,9 +588,12 @@ server <- function(input, output) {
         filter(ReportedDate >= input$date_range_sum[1],
                ReportedDate <= input$date_range_sum[2])
       our_plot<-ggplot(filter_df_summary)+
-        geom_bar(stat='identity',aes(x=ReportedDate, y=ConfirmedPositive))
+        geom_bar(stat='identity',aes(x=ReportedDate, y=ConfirmedPositive,fill=ConfirmedPositive))
       our_plot<-our_plot+
-        labs(x="时间", y="数量", title="确定是阳性/每日")
+        scale_fill_gradient(low = "dark green", high =  "dark red")+
+        labs(x="date", y="number of people", title="Daily new confirmed cases")+
+        theme(plot.title = element_text(hjust=0.5))
+      
       our_plotly_plot <- ggplotly(our_plot)
       return(our_plotly_plot)
     })
@@ -586,9 +603,10 @@ server <- function(input, output) {
         filter(ReportedDate >= input$date_range_sum[1],
                ReportedDate <= input$date_range_sum[2])
       our_plot<-ggplot(filter_df_summary)+
-        geom_bar(stat='identity',aes(x=ReportedDate, y=TotalCases))
+        geom_line(stat='identity',aes(x=ReportedDate, y=TotalCases))
       our_plot<-our_plot+
-        labs(x="时间", y="数量", title="确诊总案例")
+        labs(x="date", y="number", title="Total Confirmed Cases")+
+        theme(plot.title = element_text(hjust=0.5))
       our_plotly_plot <- ggplotly(our_plot)
       return(our_plotly_plot)
     })
@@ -600,7 +618,8 @@ server <- function(input, output) {
       our_plot<-ggplot(filter_df_summary)+
         geom_bar(stat='identity',aes(x=ReportedDate, y=Deaths))
       our_plot<-our_plot+
-        labs(x="时间", y="数量", title="死亡总数")
+        labs(x="date", y="number", title="total number of deaths")+
+        theme(plot.title = element_text(hjust=0.5))
       our_plotly_plot <- ggplotly(our_plot)
       return(our_plotly_plot)
     })
@@ -611,9 +630,11 @@ server <- function(input, output) {
                ReportedDate <= input$date_range_sum[2])
       
       our_plot<-ggplot(filter_df_summary)+
-        geom_bar(stat='identity',aes(x=ReportedDate, y=dailydeath))
+        geom_bar(stat='identity',aes(x=ReportedDate, y=dailydeath,fill=dailydeath))+
+        scale_fill_gradient(low = "dark green", high =  "dark red")
       our_plot<-our_plot+
-        labs(x="时间", y="数量", title="每日死亡")
+        labs(x="date", y="number", title="Daily new deaths")+
+        theme(plot.title = element_text(hjust=0.5))
       our_plotly_plot <- ggplotly(our_plot)
       return(our_plotly_plot)
       
@@ -628,7 +649,8 @@ server <- function(input, output) {
         geom_line(aes(x=ReportedDate, y=dailygamma,color='gamma'))+
         geom_line(aes(x=ReportedDate, y=dailydelta,color='delta'))
       our_plot<-our_plot+
-        labs(x="时间", y="数量", title="type")
+        labs(x="date", y="number of cases", title="New cases of different types of viruses (partial data)")+
+        theme(plot.title = element_text(hjust=0.5))
       our_plotly_plot <- ggplotly(our_plot)
       return(our_plotly_plot)
       
@@ -641,19 +663,37 @@ server <- function(input, output) {
         filter(Date == input$show_date_sum,
                Agegroup!="Adults_18plus"&Agegroup!="Ontario_12plus"&Agegroup!="Undisclosed_or_missing"
         )
-      
-      
-      our_plot<-ggplot(filter_vac)+
-        geom_bar(stat = 'identity',aes(x=Agegroup, y=Percent_fully_vaccinated,fill=Agegroup))
+      filter_vac$novac=1-filter_vac$Percent_fully_vaccinated
+      #child_icu<- data.frame(melt(filter_data_icu_beds[,c(9,7,8)],variable.name="type",value.name="pop"))
+      filter_vac_melt<-data.frame(melt(filter_vac[,c(2,9,11)],id.vars=c('Agegroup'),variable.name="type",value.name="val"))
+      our_plot<-ggplot(filter_vac_melt)+
+        geom_bar(stat = 'identity',aes(x=Agegroup, 
+                                       y=val,
+                                       fill=type),
+                 position='stack'
+        )+
+        #scale_fill_gradient(name="%",low = "dark green", high =  "dark red")+
+        #coord_cartesian(ylim = c(0, 1))+
+        coord_flip()
       
       
       our_plot<-our_plot+
-        labs(x="时间", y="数量", title="住院人数比例随时间变化")+
-        theme(legend.position = "bottom") 
+        labs(x="age", y="percentages", title="Proportion of fully vaccinated by age group")+
+        theme(legend.position = "bottom")
+
       
       our_plotly_plot <- ggplotly(our_plot)
       return(our_plotly_plot)
       
+    })
+    observeEvent(input$show_sum, {
+      
+      print(input$date_range)
+      
+      showModal(modalDialog(
+        title = "Important message",
+        "This is an important message!"
+      ))
     })
 }
 
