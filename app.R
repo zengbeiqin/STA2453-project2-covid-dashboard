@@ -70,10 +70,10 @@ sum_ui <- fluidPage(
   # Application title
   titlePanel(h1("Data Summary", align="center",
                 style ="font-family: 'times'; font-size: 32pt ")),
-  tags$hr(),
   fluidRow(column(8, offset = 2,
                   p("In this section, we summarize all the important data from the dashboard",align="center")
   )   ),
+  tags$hr(),
   fluidRow(column(3,
                   br(),
                   br(),
@@ -83,11 +83,6 @@ sum_ui <- fluidPage(
                                    label = "Select date range for confirmed cases",
                                    start = min(df_summary$ReportedDate),
                                    end = max(df_summary$ReportedDate)),
-                    dateInput(inputId='show_date_sum',
-                              label="select the date to show",
-                              value='2022-01-01',
-                              min='2021-11-11',
-                              max='2022-03-11'),
                     actionButton(inputId = "show_sum", 
                                  label = "Show Instructions")
                     
@@ -102,7 +97,7 @@ sum_ui <- fluidPage(
   
   column(4,plotlyOutput("totalcase"))
   ),
-  
+  tags$hr(),
   fluidRow(
     column(3,
            wellPanel(
@@ -114,6 +109,30 @@ sum_ui <- fluidPage(
     column(5,plotlyOutput("dailydeath")),
     column(4,plotlyOutput("totaldeath"))
   ),
+  tags$hr(),
+  fluidRow(
+    column(
+      2,
+      wellPanel(dateInput(inputId='show_date_sum',
+                label="select the date to show",
+                value='2022-01-01',
+                min='2021-11-11',
+                max='2022-03-11'))
+    ),
+    column(
+      4,
+      plotlyOutput("vac")
+    ),
+    column(
+      3,
+      plotOutput('perc_adult_sum')
+    ),
+    column(
+      3,
+      plotOutput('perc_child_sum')
+    )
+  ),
+  tags$hr(),
   fluidRow(
     plotlyOutput("covidtype")
   )
@@ -133,10 +152,12 @@ hos_ui <- fluidPage(
       2,
       wellPanel(dateInput(inputId='show_date',
                   label="select the date to show",
-                  value='2022-01-01',
+                  value=max(df_icu_beds$date),
                   min='2021-11-11',
                   max='2022-03-11'
-                ))
+                ),
+       "Shown on the right is the proportion of adult ICU and pediatric ICU use. 'avaliable' stands for vacant beds, 'crci' stands for ICU admission due to covid-related illness, and 'other' stands for ICU admission for other illnesses"         
+    )
     ),
     column(
       5,plotOutput('perc_adult')
@@ -175,7 +196,8 @@ hos_ui <- fluidPage(
                                label = "Select date range",
                                start = min(df$date),
                                end = max(df$date))
-      )
+      ),
+      "In this section we provide four graphs, the two on the left show how many of the existing ICU and hospitalized patients are caused by covid. The two graphs on the right are the change in the number of beds over time"
     ),
     column(
       5,
@@ -418,6 +440,30 @@ server <- function(input, output) {
       return(our_plotly_plot)
     })
     
+    output$perc_adult_sum<- renderPlot({
+      #choose the data from right time
+      
+      filter_data_icu_beds <- df_icu_beds %>% 
+        filter(date == input$show_date_sum
+        )
+      
+      # draw the histogram with the specified number of bins
+      adult_icu<- data.frame(melt(filter_data_icu_beds[,c(4,2,3)],variable.name="type",value.name="pop"))
+      adult_icu$fraction=adult_icu$pop/sum(adult_icu$pop)
+      adult_icu$ymax=cumsum(adult_icu$fraction)
+      adult_icu$ymin=c(0,head(adult_icu$ymax,n=-1))
+      
+      # Make the plot
+      ggplot(adult_icu, aes(ymax=ymax, ymin=ymin, xmax=4, xmin=3, fill=type)) +
+        geom_rect() +
+        coord_polar(theta="y") + # Try to remove that to understand how the chart is built initially
+        xlim(c(2, 4))+ # Try to remove that to see how to make a pie chart
+        theme(legend.position = 'top' ,axis.line=element_blank(),axis.text=element_blank(), axis.title = element_blank(),legend.text=element_text(size=15))+
+        guides(fill=guide_legend(title = NULL))+ 
+        scale_fill_discrete(labels=c("available", "crci", "other reason"))
+      
+    })
+    
     output$perc_adult<- renderPlot({
       #choose the data from right time
       
@@ -436,8 +482,34 @@ server <- function(input, output) {
         geom_rect() +
         coord_polar(theta="y") + # Try to remove that to understand how the chart is built initially
         xlim(c(2, 4))+ # Try to remove that to see how to make a pie chart
-        theme(legend.position = 'top',axis.line=element_blank(),axis.text=element_blank(), axis.title = element_blank())
+        theme(legend.position = 'top' ,axis.line=element_blank(),axis.text=element_blank(), axis.title = element_blank(),legend.text=element_text(size=15))+
+        guides(fill=guide_legend(title = NULL))+ 
+        scale_fill_discrete(labels=c("available", "crci", "other reason"))
         
+    })
+    
+    output$perc_child_sum<- renderPlot({
+      #choose the data from right time
+      
+      filter_data_icu_beds <- df_icu_beds %>% 
+        filter(date == input$show_date_sum
+        )
+      
+      # draw the histogram with the specified number of bins
+      child_icu<- data.frame(melt(filter_data_icu_beds[,c(9,7,8)],variable.name="type",value.name="pop"))
+      child_icu$fraction=child_icu$pop/sum(child_icu$pop)
+      child_icu$ymax=cumsum(child_icu$fraction)
+      child_icu$ymin=c(0,head(child_icu$ymax,n=-1))
+      
+      # Make the plot
+      ggplot(child_icu, aes(ymax=ymax, ymin=ymin, xmax=4, xmin=3, fill=type)) +
+        geom_rect() +
+        coord_polar(theta="y") + # Try to remove that to understand how the chart is built initially
+        xlim(c(2, 4))+ # Try to remove that to see how to make a pie chart
+        theme(legend.position = 'top',axis.line=element_blank(),axis.text=element_blank(), axis.title = element_blank(),legend.text=element_text(size=15))+
+        guides(fill=guide_legend(title = NULL))+ 
+        scale_fill_discrete(labels=c("available", "crci", "other reason"))
+      
     })
     
     output$perc_child<- renderPlot({
@@ -458,7 +530,9 @@ server <- function(input, output) {
         geom_rect() +
         coord_polar(theta="y") + # Try to remove that to understand how the chart is built initially
         xlim(c(2, 4))+ # Try to remove that to see how to make a pie chart
-        theme(legend.position = 'top',axis.line=element_blank(),axis.text=element_blank(), axis.title = element_blank())
+        theme(legend.position = 'top',axis.line=element_blank(),axis.text=element_blank(), axis.title = element_blank(),legend.text=element_text(size=15))+
+        guides(fill=guide_legend(title = NULL))+ 
+        scale_fill_discrete(labels=c("available", "crci", "other reason"))
   
     })
     
@@ -519,15 +593,15 @@ server <- function(input, output) {
       hosp_breakdown<- melt(filter_data_hosp_breakdown[,c(1,2,3)],id.vars="date",variable.name="type",value.name="pop")
       
       our_plot<-ggplot(hosp_breakdown)+
-        geom_bar(stat = 'identity',aes(x=date, y=pop,fill =type),position='stack')
+        geom_bar(stat = 'identity',aes(x=date, y=pop,fill =type),position='stack')+
+        guides(fill=guide_legend(title = NULL,label.position='top'))
       
       
       our_plot<-our_plot+
-        labs(x="date", y="ratio", title="Covid-19 hospitalization rate changes over time")+
-        theme(legend.position = "bottom") 
+        labs(x="date", y="ratio", title="Covid-19 hospitalization rate changes over time")
       
       our_plotly_plot <- ggplotly(our_plot)
-      return(our_plotly_plot)
+      return(our_plot)
       
     })
     
@@ -627,8 +701,8 @@ server <- function(input, output) {
       print(input$date_range)
       
       showModal(modalDialog(
-        title = "Important message",
-        "This is an important message!"
+        title = "Input Instructions",
+        "Please select the region and time to be displayed"
       ))
     })
     
@@ -710,7 +784,7 @@ server <- function(input, output) {
       
       filter_vac <- vac_df_summary %>% 
         filter(Date == input$show_date_sum,
-               Agegroup!="Adults_18plus"&Agegroup!="Ontario_12plus"&Agegroup!="Undisclosed_or_missing"
+               Agegroup!="Adults_18plus"&Agegroup!="Ontario_12plus"&Agegroup!="Undisclosed_or_missing"&Agegroup!="Ontario_5plus"
         )
       filter_vac$novac=1-filter_vac$Percent_fully_vaccinated
       #child_icu<- data.frame(melt(filter_data_icu_beds[,c(9,7,8)],variable.name="type",value.name="pop"))
