@@ -30,6 +30,9 @@ data_cases <- read.csv("raw_data/covidtesting.csv") %>%
 data_vaccine <- read.csv("raw_data/vaccine_doses.csv") %>%
   mutate(report_date = as.Date(report_date))
 
+data_vaccine_rate <- read.csv("raw_data/vaccines_by_age.csv") %>%
+  mutate(Date = as.Date(Date))
+
 data_vaccine_rate_latest <- read.csv("raw_data/vaccines_by_age.csv") %>%
   mutate(Date = as.Date(Date)) %>%
   filter(Date == max(Date)) %>%
@@ -222,7 +225,7 @@ vaccine_ui <- fluidPage(
   br(),
   fluidRow(
     column(4, DT::dataTableOutput("vaccine_rate_table")),
-    column(8)
+    column(8,plotlyOutput("vaccine_rate"))
   ),
   
   br(),
@@ -323,6 +326,27 @@ ui <- navbarPage(
 server <- function(input, output) {
     output$vaccine_rate_table = DT::renderDataTable({
       data_vaccine_rate_latest
+    })
+    
+    output$vaccine_rate <- renderPlotly({
+      filter_data <- data_vaccine_rate %>%
+        filter(Date >= '2022-01-01') %>%
+        select(Date, Agegroup, Percent_3doses) #%>%
+        #pivot_longer(cols=!c(Date, Agegroup), names_to = "group", values_to = "rate") %>% 
+        #mutate(rate = coalesce(rate, 0))
+      
+      #filter_data<-melt(filter_data[,c(1,2,3)],id.vars='Date',variable.name="Agegroup",value.name ="rate" )
+      
+      our_plot <- filter_data %>%
+        ggplot(aes(x = Date, y = Percent_3doses, color = Agegroup)) +
+        geom_line() +
+        #xlim('2020-01-01','2022-04-01')+
+        labs(title = "Vaccination Rate over Time",
+             x = "Date",
+             y = "Vaccination Rate")
+      
+      our_plotly_plot <- ggplotly(our_plot)
+      return(our_plotly_plot)
     })
     
     output$vaccine <- renderPlotly({
