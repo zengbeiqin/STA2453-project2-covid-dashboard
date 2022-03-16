@@ -424,6 +424,7 @@ server <- function(input, output) {
       our_plot <- ggplot(data_vac_status_hosp, aes(x="", y = value, fill = Group)) +
         geom_bar(stat = "identity") + coord_polar("y", start=0)+
         guides(fill=guide_legend(title = NULL))+ 
+        theme(legend.position = 'top',axis.line=element_blank(),axis.text=element_blank(), axis.title = element_blank(),legend.text=element_text(size=15))+
         scale_fill_discrete(labels=c("full vac", "part vac", "unvac"))+
         labs(title = "Hospitalization (Non-ICU) Vaccine Status")
       return(our_plot)
@@ -433,6 +434,7 @@ server <- function(input, output) {
       our_plot <- ggplot(data_vac_status_icu, aes(x="",y = value, fill = Group))+
       geom_bar(stat = "identity") + coord_polar("y", start=0)+
         guides(fill=guide_legend(title = NULL))+ 
+        theme(legend.position = 'top',axis.line=element_blank(),axis.text=element_blank(), axis.title = element_blank(),legend.text=element_text(size=15))+
         scale_fill_discrete(labels=c("full vac", "part vac", "unvac"))+
         labs(title = "ICU Vaccine Status")
       return(our_plot)
@@ -518,7 +520,7 @@ server <- function(input, output) {
         geom_rect() +
         coord_polar(theta="y") + # Try to remove that to understand how the chart is built initially
         xlim(c(2, 4))+ # Try to remove that to see how to make a pie chart
-        theme(legend.position = 'top' ,axis.line=element_blank(),axis.text=element_blank(), axis.title = element_blank(),legend.text=element_text(size=15))+
+        theme(axis.ticks.y = element_blank(),legend.position = 'top' ,axis.line=element_blank(),axis.text=element_blank(), axis.title = element_blank(),legend.text=element_text(size=15))+
         guides(fill=guide_legend(title = NULL))+ 
         scale_fill_discrete(labels=c("available", "crci", "other reason"))+
         labs(title = "Adult ICU Ratio")
@@ -543,7 +545,7 @@ server <- function(input, output) {
         geom_rect() +
         coord_polar(theta="y") + # Try to remove that to understand how the chart is built initially
         xlim(c(2, 4))+ # Try to remove that to see how to make a pie chart
-        theme(legend.position = 'top' ,axis.line=element_blank(),axis.text=element_blank(), axis.title = element_blank(),legend.text=element_text(size=15))+
+        theme(axis.ticks.y = element_blank(),legend.position = 'top' ,axis.line=element_blank(),axis.text=element_blank(), axis.title = element_blank(),legend.text=element_text(size=15))+
         guides(fill=guide_legend(title = NULL))+ 
         scale_fill_discrete(labels=c("available", "crci", "other reason"))+
         labs(title = "Adult ICU Ratio")
@@ -568,7 +570,7 @@ server <- function(input, output) {
         geom_rect() +
         coord_polar(theta="y") + # Try to remove that to understand how the chart is built initially
         xlim(c(2, 4))+ # Try to remove that to see how to make a pie chart
-        theme(legend.position = 'top',axis.line=element_blank(),axis.text=element_blank(), axis.title = element_blank(),legend.text=element_text(size=15))+
+        theme(axis.ticks.y = element_blank(),legend.position = 'top',axis.line=element_blank(),axis.text=element_blank(), axis.title = element_blank(),legend.text=element_text(size=15))+
         guides(fill=guide_legend(title = NULL))+ 
         scale_fill_discrete(labels=c("available", "crci", "other reason"))+
         labs(title = "Child ICU Ratio")
@@ -593,7 +595,7 @@ server <- function(input, output) {
         geom_rect() +
         coord_polar(theta="y") + # Try to remove that to understand how the chart is built initially
         xlim(c(2, 4))+ # Try to remove that to see how to make a pie chart
-        theme(legend.position = 'top',axis.line=element_blank(),axis.text=element_blank(), axis.title = element_blank(),legend.text=element_text(size=15))+
+        theme(axis.ticks.y = element_blank(),legend.position = 'top',axis.line=element_blank(),axis.text=element_blank(), axis.title = element_blank(),legend.text=element_text(size=15))+
         guides(fill=guide_legend(title = NULL))+ 
         scale_fill_discrete(labels=c("available", "crci", "other reason"))+
         labs(title = "Child ICU Ratio")
