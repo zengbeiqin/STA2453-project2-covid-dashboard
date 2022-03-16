@@ -156,9 +156,9 @@ hos_ui <- fluidPage(
                   value='2022-03-11',
                   min='2021-11-11',
                   max='2022-03-11'
-                ),
-       "Shown on the right is the proportion of adult ICU and pediatric ICU use. 'avaliable' stands for vacant beds, 'crci' stands for ICU admission due to covid-related illness, and 'other' stands for ICU admission for other illnesses"         
-    )
+                )    ),
+      "Shown on the right is the proportion of adult ICU and pediatric ICU use. 'avaliable' stands for vacant beds, 'crci' stands for ICU admission due to covid-related illness, and 'other' stands for ICU admission for other illnesses"         
+      
     ),
     column(
       5,plotOutput('perc_adult')
@@ -520,7 +520,7 @@ server <- function(input, output) {
         geom_rect() +
         coord_polar(theta="y") + # Try to remove that to understand how the chart is built initially
         xlim(c(2, 4))+ # Try to remove that to see how to make a pie chart
-        theme(axis.ticks.y = element_blank(),legend.position = 'top' ,axis.line=element_blank(),axis.text=element_blank(), axis.title = element_blank(),legend.text=element_text(size=15))+
+        theme(axis.ticks.y = element_blank(),legend.position = 'top' ,axis.line=element_blank(),axis.text=element_blank(), axis.title = element_blank(),legend.text=element_text(size=13),plot.title = element_text(size=17))+
         guides(fill=guide_legend(title = NULL))+ 
         scale_fill_discrete(labels=c("available", "crci", "other reason"))+
         labs(title = "Adult ICU Ratio")
@@ -545,7 +545,7 @@ server <- function(input, output) {
         geom_rect() +
         coord_polar(theta="y") + # Try to remove that to understand how the chart is built initially
         xlim(c(2, 4))+ # Try to remove that to see how to make a pie chart
-        theme(axis.ticks.y = element_blank(),legend.position = 'top' ,axis.line=element_blank(),axis.text=element_blank(), axis.title = element_blank(),legend.text=element_text(size=15))+
+        theme(axis.ticks.y = element_blank(),legend.position = 'top' ,axis.line=element_blank(),axis.text=element_blank(), axis.title = element_blank(),legend.text=element_text(size=13),plot.title = element_text(size=17))+
         guides(fill=guide_legend(title = NULL))+ 
         scale_fill_discrete(labels=c("available", "crci", "other reason"))+
         labs(title = "Adult ICU Ratio")
@@ -570,7 +570,7 @@ server <- function(input, output) {
         geom_rect() +
         coord_polar(theta="y") + # Try to remove that to understand how the chart is built initially
         xlim(c(2, 4))+ # Try to remove that to see how to make a pie chart
-        theme(axis.ticks.y = element_blank(),legend.position = 'top',axis.line=element_blank(),axis.text=element_blank(), axis.title = element_blank(),legend.text=element_text(size=15))+
+        theme(axis.ticks.y = element_blank(),legend.position = 'top',axis.line=element_blank(),axis.text=element_blank(), axis.title = element_blank(),legend.text=element_text(size=13),plot.title = element_text(size=17))+
         guides(fill=guide_legend(title = NULL))+ 
         scale_fill_discrete(labels=c("available", "crci", "other reason"))+
         labs(title = "Child ICU Ratio")
@@ -595,7 +595,7 @@ server <- function(input, output) {
         geom_rect() +
         coord_polar(theta="y") + # Try to remove that to understand how the chart is built initially
         xlim(c(2, 4))+ # Try to remove that to see how to make a pie chart
-        theme(axis.ticks.y = element_blank(),legend.position = 'top',axis.line=element_blank(),axis.text=element_blank(), axis.title = element_blank(),legend.text=element_text(size=15))+
+        theme(axis.ticks.y = element_blank(),legend.position = 'top',axis.line=element_blank(),axis.text=element_blank(), axis.title = element_blank(),legend.text=element_text(size=13),plot.title = element_text(size=17))+
         guides(fill=guide_legend(title = NULL))+ 
         scale_fill_discrete(labels=c("available", "crci", "other reason"))+
         labs(title = "Child ICU Ratio")
