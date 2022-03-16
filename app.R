@@ -152,7 +152,7 @@ hos_ui <- fluidPage(
       2,
       wellPanel(dateInput(inputId='show_date',
                   label="select the date to show",
-                  value=max(df_icu_beds$date),
+                  value='2022-03-11',
                   min='2021-11-11',
                   max='2022-03-11'
                 ),
