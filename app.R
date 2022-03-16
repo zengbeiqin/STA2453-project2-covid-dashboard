@@ -219,6 +219,9 @@ hos_ui <- fluidPage(
 # Define UI for vaccination page
 vaccine_ui <- fluidPage(
   # page title
+  titlePanel(h1("Vaccine", align="center",
+                style ="font-family: 'times'; font-size: 32pt ")),
+  tags$hr(),
   titlePanel("Vaccine Rate by Age"), 
   br(),
   fluidRow(
@@ -237,6 +240,7 @@ vaccine_ui <- fluidPage(
   ),
   
   br(),
+  tags$hr(),
   titlePanel("Vaccination Progress over Time"),
   br(),
   sidebarLayout(
@@ -255,6 +259,7 @@ vaccine_ui <- fluidPage(
   ),
   
   br(),
+  tags$hr(),
   titlePanel("Hospitalization/ICU by vaccine status"),
   br(),
   fluidRow(
@@ -266,6 +271,9 @@ vaccine_ui <- fluidPage(
 
 # Define UI for cases page
 cases_ui <- fluidPage(
+  titlePanel(h1("Basic Cases Information", align="center",
+                style ="font-family: 'times'; font-size: 32pt ")),
+  tags$hr(),
   titlePanel("Cases"),
   br(),
   sidebarLayout(
@@ -285,6 +293,7 @@ cases_ui <- fluidPage(
   ),
   
   br(),
+  tags$hr(),
   titlePanel("Deaths"),
   br(),
   sidebarLayout(
@@ -304,6 +313,7 @@ cases_ui <- fluidPage(
   ),
   
   br(),
+  tags$hr(),
   titlePanel("Active Cases"),
   br(),
   sidebarLayout(
@@ -411,14 +421,20 @@ server <- function(input, output) {
     })
     
     output$hosp_by_vaccine_status <- renderPlot({
-      our_plot <- ggplot(data_vac_status_hosp, aes(x = "", y = value, fill = Group)) +
-        geom_bar(stat = "identity") + coord_polar("y", start=0)
+      our_plot <- ggplot(data_vac_status_hosp, aes(x="", y = value, fill = Group)) +
+        geom_bar(stat = "identity") + coord_polar("y", start=0)+
+        guides(fill=guide_legend(title = NULL))+ 
+        scale_fill_discrete(labels=c("full vac", "part vac", "unvac"))+
+        labs(title = "Hospitalization (Non-ICU) Vaccine Status")
       return(our_plot)
     })
     
     output$icu_by_vaccine_status <- renderPlot({
-      our_plot <- ggplot(data_vac_status_icu, aes(x = "", y = value, fill = Group)) +
-        geom_bar(stat = "identity") + coord_polar("y", start=0)
+      our_plot <- ggplot(data_vac_status_icu, aes(x="",y = value, fill = Group))+
+      geom_bar(stat = "identity") + coord_polar("y", start=0)+
+        guides(fill=guide_legend(title = NULL))+ 
+        scale_fill_discrete(labels=c("full vac", "part vac", "unvac"))+
+        labs(title = "ICU Vaccine Status")
       return(our_plot)
     })
     
@@ -504,7 +520,8 @@ server <- function(input, output) {
         xlim(c(2, 4))+ # Try to remove that to see how to make a pie chart
         theme(legend.position = 'top' ,axis.line=element_blank(),axis.text=element_blank(), axis.title = element_blank(),legend.text=element_text(size=15))+
         guides(fill=guide_legend(title = NULL))+ 
-        scale_fill_discrete(labels=c("available", "crci", "other reason"))
+        scale_fill_discrete(labels=c("available", "crci", "other reason"))+
+        labs(title = "Adult ICU Ratio")
       
     })
     
@@ -528,7 +545,8 @@ server <- function(input, output) {
         xlim(c(2, 4))+ # Try to remove that to see how to make a pie chart
         theme(legend.position = 'top' ,axis.line=element_blank(),axis.text=element_blank(), axis.title = element_blank(),legend.text=element_text(size=15))+
         guides(fill=guide_legend(title = NULL))+ 
-        scale_fill_discrete(labels=c("available", "crci", "other reason"))
+        scale_fill_discrete(labels=c("available", "crci", "other reason"))+
+        labs(title = "Adult ICU Ratio")
         
     })
     
@@ -552,7 +570,8 @@ server <- function(input, output) {
         xlim(c(2, 4))+ # Try to remove that to see how to make a pie chart
         theme(legend.position = 'top',axis.line=element_blank(),axis.text=element_blank(), axis.title = element_blank(),legend.text=element_text(size=15))+
         guides(fill=guide_legend(title = NULL))+ 
-        scale_fill_discrete(labels=c("available", "crci", "other reason"))
+        scale_fill_discrete(labels=c("available", "crci", "other reason"))+
+        labs(title = "Child ICU Ratio")
       
     })
     
@@ -576,7 +595,8 @@ server <- function(input, output) {
         xlim(c(2, 4))+ # Try to remove that to see how to make a pie chart
         theme(legend.position = 'top',axis.line=element_blank(),axis.text=element_blank(), axis.title = element_blank(),legend.text=element_text(size=15))+
         guides(fill=guide_legend(title = NULL))+ 
-        scale_fill_discrete(labels=c("available", "crci", "other reason"))
+        scale_fill_discrete(labels=c("available", "crci", "other reason"))+
+        labs(title = "Child ICU Ratio")
   
     })
     
