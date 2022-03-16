@@ -22,8 +22,6 @@ library(ggpubr)
 my_theme <- bs_theme(bootswatch = "cosmo")
 #theme_set(theme_light())
 
-#thematic_shiny(font = "auto")
-
 data_cases <- read.csv("raw_data/covidtesting.csv") %>%
   mutate(Reported.Date = as.Date(Reported.Date)) 
 
@@ -225,7 +223,17 @@ vaccine_ui <- fluidPage(
   br(),
   fluidRow(
     column(4, DT::dataTableOutput("vaccine_rate_table")),
-    column(8,plotlyOutput("vaccine_rate"))
+    column(8,
+           selectInput(inputId = "fully_or_3doses",
+                       label = "Fully vaccinated or 3 doses",
+                       selected = "Fully Vaccinated", choices = c("Fully Vaccinated", "Three Doses")),
+           dateRangeInput(inputId = 'vaccine_rate_date_range',
+                          label = "Select date range (Past 90 days by default)",
+                          start = max(data_vaccine_rate$Date)-90,
+                          end = max(data_vaccine_rate$Date),
+                          min = min(data_vaccine_rate$Date),
+                          max = max(data_vaccine_rate$Date)),   
+           plotlyOutput("vaccine_rate"))
   ),
   
   br(),
@@ -329,21 +337,33 @@ server <- function(input, output) {
     })
     
     output$vaccine_rate <- renderPlotly({
-      filter_data <- data_vaccine_rate %>%
-        filter(Date >= '2022-01-01') %>%
-        select(Date, Agegroup, Percent_3doses) #%>%
-        #pivot_longer(cols=!c(Date, Agegroup), names_to = "group", values_to = "rate") %>% 
-        #mutate(rate = coalesce(rate, 0))
-      
-      #filter_data<-melt(filter_data[,c(1,2,3)],id.vars='Date',variable.name="Agegroup",value.name ="rate" )
-      
-      our_plot <- filter_data %>%
-        ggplot(aes(x = Date, y = Percent_3doses, color = Agegroup)) +
-        geom_line() +
-        #xlim('2020-01-01','2022-04-01')+
-        labs(title = "Vaccination Rate over Time",
-             x = "Date",
-             y = "Vaccination Rate")
+      if (input$fully_or_3doses == "Fully Vaccinated") {
+        filter_data <- data_vaccine_rate %>%
+          filter(Date >= input$vaccine_rate_date_range[1],
+                 Date <= input$vaccine_rate_date_range[2]) %>%
+          select(Date, Agegroup, Percent_fully_vaccinated)
+        
+        our_plot <- filter_data %>%
+          ggplot(aes(x = Date, y = Percent_fully_vaccinated, color = Agegroup)) +
+          geom_line() +
+          ylim(0, 1)+
+          labs(title = "Vaccination Rate over Time",
+               x = "Date",
+               y = "Vaccination Rate")
+      } else {
+        filter_data <- data_vaccine_rate %>%
+          filter(Date >= input$vaccine_rate_date_range[1],
+                 Date <= input$vaccine_rate_date_range[2]) %>%
+          select(Date, Agegroup, Percent_3doses)
+        
+        our_plot <- filter_data %>%
+          ggplot(aes(x = Date, y = Percent_3doses, color = Agegroup)) +
+          geom_line() +
+          ylim(0, 1)+
+          labs(title = "Vaccination Rate over Time",
+               x = "Date",
+               y = "Vaccination Rate")
+      }
       
       our_plotly_plot <- ggplotly(our_plot)
       return(our_plotly_plot)
