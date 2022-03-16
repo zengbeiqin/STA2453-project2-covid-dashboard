@@ -421,22 +421,22 @@ server <- function(input, output) {
     })
     
     output$hosp_by_vaccine_status <- renderPlot({
-      our_plot <- ggplot(data_vac_status_hosp, aes(x="", y = value, fill = Group)) +
-        geom_bar(stat = "identity") + coord_polar("y", start=0)+
-        guides(fill=guide_legend(title = NULL))+ 
-        theme(legend.position = 'top',axis.line=element_blank(),axis.text=element_blank(), axis.title = element_blank(),legend.text=element_text(size=15))+
-        scale_fill_discrete(labels=c("full vac", "part vac", "unvac"))+
-        labs(title = "Hospitalization (Non-ICU) Vaccine Status")
+      our_plot <- ggplot(data_vac_status_hosp, aes(x = "", y = value, fill = Group)) +
+        geom_bar(stat = "identity") + 
+        coord_polar("y", start=0) +
+        theme(axis.line=element_blank(),axis.text=element_blank(), axis.title = element_blank()) + 
+        geom_text(aes(y = value/2 + c(0, cumsum(value)[-length(value)]), 
+                      label = value), size=5)
       return(our_plot)
     })
     
     output$icu_by_vaccine_status <- renderPlot({
-      our_plot <- ggplot(data_vac_status_icu, aes(x="",y = value, fill = Group))+
-      geom_bar(stat = "identity") + coord_polar("y", start=0)+
-        guides(fill=guide_legend(title = NULL))+ 
-        theme(legend.position = 'top',axis.line=element_blank(),axis.text=element_blank(), axis.title = element_blank(),legend.text=element_text(size=15))+
-        scale_fill_discrete(labels=c("full vac", "part vac", "unvac"))+
-        labs(title = "ICU Vaccine Status")
+      our_plot <- ggplot(data_vac_status_icu, aes(x = "", y = value, fill = Group)) +
+        geom_bar(stat = "identity") + 
+        coord_polar("y", start=0) +
+        theme(axis.line=element_blank(),axis.text=element_blank(), axis.title = element_blank()) + 
+        geom_text(aes(y = value/2 + c(0, cumsum(value)[-length(value)]), 
+                      label = value), size=5)
       return(our_plot)
     })
     
@@ -664,7 +664,7 @@ server <- function(input, output) {
       
       
       our_plot<-our_plot+
-        labs(x="date", y="ratio", title="Covid-19 hospitalization rate changes over time")
+        labs(x="date", y="ratio", title="hospitalization Covid-19 rate by time")
       
       our_plotly_plot <- ggplotly(our_plot)
       return(our_plot)
@@ -693,8 +693,8 @@ server <- function(input, output) {
       
       
       our_plot<-our_plot+
-        labs(x="date", y="ratio", title="Covid-19 ICU rate changes over time")+
-        theme(legend.position = "bottom") 
+        labs(x="date", y="ratio", title="ICU Covid-19 rate changes over time")+
+        guides(fill=guide_legend(title = NULL,label.position='top'))
       
       our_plotly_plot <- ggplotly(our_plot)
       return(our_plotly_plot)
@@ -724,7 +724,8 @@ server <- function(input, output) {
       
       
       our_plot<-our_plot+
-        labs(x="date", y="number", title="Adult ICU beds")
+        labs(x="date", y="number", title="Adult ICU beds")+
+        guides(fill=guide_legend(title = NULL,label.position='top'))
       
       our_plotly_plot <- ggplotly(our_plot)
       return(our_plotly_plot)
@@ -754,7 +755,8 @@ server <- function(input, output) {
       
       
       our_plot<-our_plot+
-        labs(x="date", y="number", title="Number of ICU beds for children")
+        labs(x="date", y="number", title="Number of ICU beds for children")+
+        guides(fill=guide_legend(title = NULL,label.position='top'))
         
       
       our_plotly_plot <- ggplotly(our_plot)
@@ -780,8 +782,9 @@ server <- function(input, output) {
         geom_bar(stat='identity',aes(x=ReportedDate, y=ConfirmedPositive,fill=ConfirmedPositive))
       our_plot<-our_plot+
         scale_fill_gradient(low = "dark green", high =  "dark red")+
-        labs(x="date", y="number of people", title="Daily new confirmed cases")+
-        theme(plot.title = element_text(hjust=0.5))
+        labs(x="date", y="number of people", title="Daily New Confirmed Cases")+
+        theme(plot.title = element_text(hjust=0.5))+
+        guides(fill=guide_legend(title = NULL,label.position='top'))
       
       our_plotly_plot <- ggplotly(our_plot)
       return(our_plotly_plot)
@@ -807,7 +810,7 @@ server <- function(input, output) {
       our_plot<-ggplot(filter_df_summary)+
         geom_line(stat='identity',aes(x=ReportedDate, y=Deaths))
       our_plot<-our_plot+
-        labs(x="date", y="number", title="total number of deaths")+
+        labs(x="date", y="number", title="Total Number of Deaths")+
         theme(plot.title = element_text(hjust=0.5))
       our_plotly_plot <- ggplotly(our_plot)
       return(our_plotly_plot)
@@ -822,8 +825,9 @@ server <- function(input, output) {
         geom_bar(stat='identity',aes(x=ReportedDate, y=dailydeath,fill=dailydeath))+
         scale_fill_gradient(low = "dark green", high =  "dark red")
       our_plot<-our_plot+
-        labs(x="date", y="number", title="Daily new deaths")+
-        theme(plot.title = element_text(hjust=0.5))
+        labs(x="date", y="number", title="Daily New Deaths")+
+        theme(plot.title = element_text(hjust=0.5),legend.title = NULL)+
+        guides(fill=guide_legend(title = NULL,label.position='top'))
       our_plotly_plot <- ggplotly(our_plot)
       return(our_plotly_plot)
       
@@ -880,8 +884,8 @@ server <- function(input, output) {
       print(input$date_range)
       
       showModal(modalDialog(
-        title = "Important message",
-        "This is an important message!"
+        title = "Instruction",
+        "In order to ensure the best visual effect, please watch in full screen"
       ))
     })
 }
